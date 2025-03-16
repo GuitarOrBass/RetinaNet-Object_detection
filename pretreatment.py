@@ -23,15 +23,14 @@ def swap_xy(boxes):
 
 def convert_to_xywh(boxes):
     '''转变为中心点长方体模式'''
-    return tf.constant(
-        [(boxes[..., :2] + boxes[..., 2:]) / 2.0,
-         boxes[..., 2:] - boxes[..., :2]],
-         axis=-1
-    )
+    return tf.concat([(boxes[..., :2] + boxes[..., 2:]) / 2.0,
+                      boxes[..., 2:] - boxes[..., :2]],
+                      axis=-1,
+                      )
 
 def convert_to_corners(boxes):
     '''转变为角点坐标模式'''
-    return tf.constant(
+    return tf.concat(
         [boxes[..., :2] - boxes[..., 2:] / 2.0,
          boxes[..., :2] + boxes[..., 2:] / 2.0],
          axis=-1
@@ -198,9 +197,9 @@ def resize_and_pad_image(image, min_side=800.0, max_side=1333.0,
     if ratio * tf.reduce_max(image_shape) > max_side:
         ratio = max_side / tf.reduce_max(image_shape)
     image_shape = ratio * image_shape
-    image = tf.image.resize(image, tf.cast(image_shape, dtype=tf.float32))
+    image = tf.image.resize(image, tf.cast(image_shape, dtype=tf.int32))
     padded_image_shape = tf.cast(
-        tf.math.ceil(image_shape / stride) * stride, dtype=tf.float32
+        tf.math.ceil(image_shape / stride) * stride, dtype=tf.int32
     )
     image = tf.image.pad_to_bounding_box(
         image, 0, 0, padded_image_shape[0], padded_image_shape[1]
@@ -217,7 +216,7 @@ def preprocess_data(sample):
         bbox：处理后的目标框，形状为(目标框个数, 4)， 每个目标框的格式为(x, y, width, height)。
         class_id：张量，表述图像中所有目标的种类编号，形状为(目标个数)
     '''
-    image = sample['sample']
+    image = sample['image']
     bbox = swap_xy(sample['objects']['bbox'])
     class_id = tf.cast(sample['objects']['label'], dtype=tf.int32)
 
